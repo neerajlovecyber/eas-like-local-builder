@@ -1,55 +1,52 @@
-FROM ubuntu:jammy
+FROM ubuntu:24.04
 
 # Set environment variables for Java
-ENV JAVA_HOME /usr/lib/jvm/java-17-openjdk-amd64
-ENV PATH $PATH:$JAVA_HOME/bin
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH=$PATH:$JAVA_HOME/bin
 
-# Install essential packages and Java 17
+# Install essential packages, Java 17, and curl
 RUN apt-get update && apt-get install -y \
     wget \
+    curl \
     unzip \
     build-essential \
     openjdk-17-jdk \
     software-properties-common \
+    git \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Add the official Git PPA
-RUN add-apt-repository ppa:git-core/ppa
-# Update package list and install the latest stable Git version
-RUN apt-get update && apt-get install -y git
+# Install Node.js 20.19.4
+RUN wget https://nodejs.org/dist/v20.19.4/node-v20.19.4-linux-x64.tar.xz \
+    && tar -xJf node-v20.19.4-linux-x64.tar.xz -C /usr/local --strip-components=1 \
+    && rm node-v20.19.4-linux-x64.tar.xz
 
-# Install Node.js 18.18.0
-RUN wget https://nodejs.org/dist/v18.18.0/node-v18.18.0-linux-x64.tar.xz \
-    && tar -xJf node-v18.18.0-linux-x64.tar.xz -C /usr/local --strip-components=1 \
-    && rm node-v18.18.0-linux-x64.tar.xz
+# Install specific versions of npm, Yarn, pnpm, node-gyp, and eas-cli
+RUN npm install -g npm@10.9.3 \
+    && npm install -g yarn@1.22.22 pnpm@10.14.0 node-gyp@11.3.0 eas-cli@latest
 
-# Update npm to 9.8.1 and install Yarn, pnpm, node-gyp, and eas-cli
-# Update npm to 9.8.1 and install Yarn, pnpm, node-gyp, and latest eas-cli
-RUN npm install -g npm@9.8.1 \
-    && npm install -g yarn@1.22.21 pnpm@9.3.0 node-gyp@10.1.0 eas-cli@latest
+# Install Bun 1.2.20
+ENV BUN_INSTALL=/usr/local
+RUN curl -fsSL https://bun.sh/install | bash -s "bun-v1.2.20"
 
-# Install Bun 1.1.13 using wget
-ENV BUN_INSTALL /usr/local
-RUN wget -qO- https://bun.sh/install | bash -s "bun-v1.1.13"
+# Install Android NDK r27b with robust retry logic
+RUN wget --tries=20 --retry-connrefused --waitretry=5 --timeout=60 --no-dns-cache https://dl.google.com/android/repository/android-ndk-r27b-linux.zip \
+    && unzip android-ndk-r27b-linux.zip -d /opt \
+    && rm android-ndk-r27b-linux.zip
 
-# Install Android NDK r26b
-RUN wget https://dl.google.com/android/repository/android-ndk-r26b-linux.zip \
-    && unzip android-ndk-r26b-linux.zip -d /opt \
-    && rm android-ndk-r26b-linux.zip
-
-ENV NDK_HOME /opt/android-ndk-r26b
+ENV NDK_HOME=/opt/android-ndk-r27b
 
 # Install Android SDK command-line tools
-RUN wget https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip \
+# Using a newer version compatible with modern environments (11076708 corresponds to build-tools 13.0)
+RUN wget --tries=20 --retry-connrefused --waitretry=5 --timeout=60 --no-dns-cache https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip \
     && mkdir -p /opt/android-sdk/cmdline-tools \
-    && unzip commandlinetools-linux-7583922_latest.zip -d /opt/android-sdk/cmdline-tools \
+    && unzip commandlinetools-linux-11076708_latest.zip -d /opt/android-sdk/cmdline-tools \
     && mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest \
-    && rm commandlinetools-linux-7583922_latest.zip
+    && rm commandlinetools-linux-11076708_latest.zip
 
 # Set environment variables for Android SDK
-ENV ANDROID_HOME /opt/android-sdk
-ENV PATH $PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+ENV ANDROID_HOME=/opt/android-sdk
+ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
 
 # Install required Android SDK components
 RUN yes | sdkmanager --licenses \
