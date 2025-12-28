@@ -25,8 +25,9 @@ RUN wget https://nodejs.org/dist/v18.18.0/node-v18.18.0-linux-x64.tar.xz \
     && rm node-v18.18.0-linux-x64.tar.xz
 
 # Update npm to 9.8.1 and install Yarn, pnpm, node-gyp, and eas-cli
+# Update npm to 9.8.1 and install Yarn, pnpm, node-gyp, and latest eas-cli
 RUN npm install -g npm@9.8.1 \
-    && npm install -g yarn@1.22.21 pnpm@9.3.0 node-gyp@10.1.0 eas-cli
+    && npm install -g yarn@1.22.21 pnpm@9.3.0 node-gyp@10.1.0 eas-cli@latest
 
 # Install Bun 1.1.13 using wget
 ENV BUN_INSTALL /usr/local
@@ -52,7 +53,7 @@ ENV PATH $PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-too
 
 # Install required Android SDK components
 RUN yes | sdkmanager --licenses \
-    && sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0"
+    && sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
 # Hardcode the EAS build command with a default profile
 CMD ["bash", "-c", "eas build --platform android --local --profile ${PROFILE:-development}"]
